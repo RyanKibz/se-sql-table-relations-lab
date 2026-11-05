@@ -1,160 +1,188 @@
-# STEP 1
-# Replace None with your code
-df_boston = None
+
+import sqlite3
+import pandas as pd
+
+# Connect to the database
+conn = sqlite3.connect("data.sqlite")
+
+
+# ==========================================================
+# STEP 1: Employees working in Boston
+# ==========================================================
 
 df_boston = pd.read_sql("""
     SELECT
-        employees.firstName,
-        employees.lastName
-    FROM employees
-    JOIN offices
-        ON employees.officeCode = offices.officeCode
-    WHERE offices.city = 'Boston';
+        e.firstName,
+        e.lastName,
+        e.jobTitle
+    FROM employees e
+    JOIN offices o
+        ON e.officeCode = o.officeCode
+    WHERE o.city = 'Boston';
 """, conn)
 
 
-# STEP 2
-# Replace None with your code
-df_zero_emp = None
+# ==========================================================
+# STEP 2: Offices with zero employees
+# ==========================================================
+
 df_zero_emp = pd.read_sql("""
-SELECT offices.city
-FROM offices
-LEFT JOIN employees
-    ON offices.officeCode = employees.officeCode
-WHERE employees.officeCode IS NULL;
+    SELECT
+        o.city
+    FROM offices o
+    LEFT JOIN employees e
+        ON o.officeCode = e.officeCode
+    WHERE e.employeeNumber IS NULL;
 """, conn)
 
-# STEP 3
-# Replace None with your code
-df_employee = None
+
+# ==========================================================
+# STEP 3: All employees and their office locations
+# ==========================================================
+
 df_employee = pd.read_sql("""
-SELECT
-    employees.firstName,
-    employees.lastName,
-    offices.city,
-    offices.state
-FROM employees
-LEFT JOIN offices
-    ON employees.officeCode = offices.officeCode
-ORDER BY
-    employees.firstName ASC,
-    employees.lastName ASC;
+    SELECT
+        e.firstName,
+        e.lastName,
+        o.city,
+        o.state
+    FROM employees e
+    LEFT JOIN offices o
+        ON e.officeCode = o.officeCode
+    ORDER BY
+        e.firstName ASC,
+        e.lastName ASC;
 """, conn)
 
-# STEP 4
-# Replace None with your code
-df_contacts = None
+
+# ==========================================================
+# STEP 4: Customers who have not placed any orders
+# ==========================================================
+
 df_contacts = pd.read_sql("""
-SELECT
-    customers.contactFirstName,
-    customers.contactLastName,
-    customers.phone,
-    customers.salesRepEmployeeNumber
-FROM customers
-LEFT JOIN orders
-    ON customers.customerNumber = orders.customerNumber
-WHERE orders.orderNumber IS NULL
-ORDER BY customers.contactLastName ASC;
+    SELECT
+        c.contactFirstName,
+        c.contactLastName,
+        c.phone,
+        c.salesRepEmployeeNumber
+    FROM customers c
+    LEFT JOIN orders o
+        ON c.customerNumber = o.customerNumber
+    WHERE o.orderNumber IS NULL
+    ORDER BY c.contactLastName ASC;
 """, conn)
 
-# STEP 5
-# Replace None with your code
-df_payment = None
+
+# ==========================================================
+# STEP 5: Customer payment details
+# ==========================================================
+
 df_payment = pd.read_sql("""
-SELECT
-    customers.contactFirstName,
-    customers.contactLastName,
-    payments.amount,
-    payments.paymentDate
-FROM customers
-JOIN payments
-    ON customers.customerNumber = payments.customerNumber
-ORDER BY CAST(payments.amount AS REAL) DESC;
+    SELECT
+        c.contactFirstName,
+        c.contactLastName,
+        p.amount,
+        p.paymentDate
+    FROM customers c
+    JOIN payments p
+        ON c.customerNumber = p.customerNumber
+    ORDER BY CAST(p.amount AS REAL) DESC;
 """, conn)
 
-# STEP 6
-# Replace None with your code
-df_credit = None
+
+# ==========================================================
+# STEP 6: Employees with average customer credit
+# limits greater than 90,000
+# ==========================================================
+
 df_credit = pd.read_sql("""
-SELECT
-    employees.employeeNumber,
-    employees.firstName,
-    employees.lastName,
-    COUNT(customers.customerNumber) AS numcustomers
-FROM employees 
-JOIN customers
-    ON employees.employeeNumber = customers.salesRepEmployeeNumber
-GROUP BY
-    employees.employeeNumber,
-    employees.firstName,
-    employees.lastName
-HAVING AVG(customers.creditLimit) > 90000
-ORDER BY numcustomers DESC
-LIMIT 4;
+    SELECT
+        e.employeeNumber,
+        e.firstName,
+        e.lastName,
+        COUNT(c.customerNumber) AS numcustomers
+    FROM employees e
+    JOIN customers c
+        ON e.employeeNumber = c.salesRepEmployeeNumber
+    GROUP BY
+        e.employeeNumber,
+        e.firstName,
+        e.lastName
+    HAVING AVG(CAST(c.creditLimit AS REAL)) > 90000
+    ORDER BY numcustomers DESC;
 """, conn)
 
-# STEP 7
-# Replace None with your code
-df_product_sold = None
+
+# ==========================================================
+# STEP 7: Best-selling products
+# ==========================================================
+
 df_product_sold = pd.read_sql("""
-SELECT
-    products.productName,
-    COUNT(orders.orderNumber) AS numorders,
-    SUM(orders.quantityOrdered) AS totalunits
-FROM products 
-JOIN orderdetails orders
-    ON products.productCode = orders.productCode
-GROUP BY
-    products.productCode,
-    products.productName
-ORDER BY totalunits DESC;
+    SELECT
+        p.productName,
+        COUNT(od.orderNumber) AS numorders,
+        SUM(od.quantityOrdered) AS totalunits
+    FROM products p
+    JOIN orderdetails od
+        ON p.productCode = od.productCode
+    GROUP BY
+        p.productCode,
+        p.productName
+    ORDER BY totalunits DESC;
 """, conn)
 
-# STEP 8
-# Replace None with your code
-df_total_customers = None
+
+# ==========================================================
+# STEP 8: Number of unique customers per product
+# ==========================================================
 
 df_total_customers = pd.read_sql("""
     SELECT
-        products.productName,
-        products.productCode,
-        COUNT(DISTINCT orders.customerNumber) AS numpurchasers
-    FROM products
+        p.productName,
+        p.productCode,
+        COUNT(DISTINCT o.customerNumber) AS numpurchasers
+    FROM products p
     JOIN orderdetails od
-        ON products.productCode = od.productCode
-    JOIN orders
-        ON od.orderNumber = orders.orderNumber
+        ON p.productCode = od.productCode
+    JOIN orders o
+        ON od.orderNumber = o.orderNumber
     GROUP BY
-        products.productName,
-        products.productCode
+        p.productCode,
+        p.productName
     ORDER BY numpurchasers DESC;
 """, conn)
 
 
-# STEP 9
-# Replace None with your code
-df_customers = None
+# ==========================================================
+# STEP 9: Number of customers per office
+# ==========================================================
+
 df_customers = pd.read_sql("""
     SELECT
-        offices.officeCode,
-        offices.city,
-        COUNT(customers.customerNumber) AS n_customers
-    FROM offices
-    JOIN employees
-        ON offices.officeCode = employees.officeCode
-    JOIN customers
-        ON employees.employeeNumber = customers.salesRepEmployeeNumber
-    GROUP BY offices.officeCode, offices.city
-    ORDER BY offices.officeCode;
+        o.officeCode,
+        o.city,
+        COUNT(DISTINCT c.customerNumber) AS n_customers
+    FROM offices o
+    LEFT JOIN employees e
+        ON o.officeCode = e.officeCode
+    LEFT JOIN customers c
+        ON e.employeeNumber = c.salesRepEmployeeNumber
+    GROUP BY
+        o.officeCode,
+        o.city
+    ORDER BY o.officeCode;
 """, conn)
 
-# STEP 10
-# Replace None with your code
-df_under_20 = None
+
+# ==========================================================
+# STEP 10: Employees who sold products purchased
+# by fewer than 20 distinct customers
+# ==========================================================
 
 df_under_20 = pd.read_sql("""
     WITH underperforming_products AS (
-        SELECT od.productCode
+        SELECT
+            od.productCode
         FROM orderdetails od
         JOIN orders o
             ON od.orderNumber = o.orderNumber
@@ -178,7 +206,58 @@ df_under_20 = pd.read_sql("""
         ON od.productCode = up.productCode
     JOIN offices ofc
         ON e.officeCode = ofc.officeCode
-    ORDER BY e.lastName, e.firstName;
+    ORDER BY
+        e.lastName,
+        e.firstName;
 """, conn)
 
+
+# ==========================================================
+# DISPLAY RESULTS
+# ==========================================================
+
+results = [
+    ("STEP 1: Boston Employees", df_boston),
+    ("STEP 2: Offices With Zero Employees", df_zero_emp),
+    ("STEP 3: Employees and Office Locations", df_employee),
+    ("STEP 4: Customers Without Orders", df_contacts),
+    ("STEP 5: Customer Payments", df_payment),
+    ("STEP 6: High-Credit Customer Sales Reps", df_credit),
+    ("STEP 7: Best-Selling Products", df_product_sold),
+    ("STEP 8: Unique Customers Per Product", df_total_customers),
+    ("STEP 9: Customers Per Office", df_customers),
+    ("STEP 10: Employees Selling Underperforming Products", df_under_20)
+]
+
+for heading, dataframe in results:
+    print(f"\n{'=' * 60}")
+    print(heading)
+    print(f"{'=' * 60}")
+    print(dataframe.to_string(index=False))
+    print(f"\nTotal rows: {len(dataframe)}")
+
+
+# ==========================================================
+# VALIDATE EXPECTED RESULTS
+# ==========================================================
+
+print("\nVALIDATION CHECKS")
+
+print(
+    f"Step 4: {len(df_contacts)} customers without orders "
+    f"(expected: 24)"
+)
+
+print(
+    f"Step 6: {len(df_credit)} qualifying employees "
+    f"(expected: 4)"
+)
+
+
+# ==========================================================
+# STEP 11: Close the database connection
+# ==========================================================
+
 conn.close()
+
+print("\nDatabase connection closed successfully.")
