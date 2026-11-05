@@ -1,4 +1,3 @@
-
 # STEP 1
 # Replace None with your code
 df_boston = None
